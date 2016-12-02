@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"time"
 
 	"path"
 
 	"net/http"
-
-	"time"
 
 	"gopkg.in/urfave/cli.v1"
 )
@@ -21,15 +20,24 @@ func main() {
 		Timeout: time.Second * 30,
 	}
 
+	var mapboxAPIKey string
+	var mapboxUserName string
+
 	app := cli.NewApp()
 	app.Name = "mapuploader"
 	app.Usage = "uploads data to mapbox servers"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:   "mapbox_key, mk",
-			Usage:  "the key for mapbox api access",
-			EnvVar: "MAPBOX_KEY",
+			Name:        "mapbox_key, mk",
+			Usage:       "the key for mapbox api access",
+			EnvVar:      "MAPBOX_KEY",
+			Destination: &mapboxAPIKey,
+		},
+		cli.StringFlag{
+			Name:        "mapbox_user, u",
+			Usage:       "the mapbox username",
+			Destination: &mapboxUserName,
 		},
 	}
 
@@ -40,7 +48,10 @@ func main() {
 			Usage:   "uploads the geojson or tile to mapbox",
 			Action: func(c *cli.Context) error {
 				fmt.Println("uploading file: ", c.Args().First())
-				getMapboxCredentials("holahola", "juanjcsr", mapboxHTTPClient)
+				if mapboxAPIKey == "" || mapboxUserName == "" {
+					return cli.NewExitError("you need to provide mapbox access tokens", 1)
+				}
+				getMapboxCredentials(mapboxAPIKey, mapboxUserName, mapboxHTTPClient)
 				return nil
 			},
 		},
@@ -56,7 +67,8 @@ func main() {
 // MapboxURL has the remote mapbox endpoint
 const MapboxURL = "https://api.mapbox.com"
 
-type mapboxCredentials struct {
+// MapboxCredentials holds the keys needed to upload stuff
+type MapboxCredentials struct {
 	AccessKeyID     string
 	Bucket          string
 	Key             string
@@ -76,9 +88,9 @@ func getMapboxCredentials(apiKey string, userName string, mapboxClient *http.Cli
 
 	response, err := mapboxClient.Get(baseURL.String())
 	defer response.Body.Close()
-	if err != nil {
-		credentials := new(mapboxCredentials)
-		if err := json.NewDecoder(response.Body).Decode(credentials); err != nil {
+	if err == nil {
+		credentials := new(MapboxCredentials)
+		if err := json.NewDecoder(response.Body).Decode(credentials); err == nil {
 			fmt.Println(credentials)
 		}
 	}
