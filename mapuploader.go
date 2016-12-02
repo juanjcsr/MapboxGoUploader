@@ -22,6 +22,7 @@ func main() {
 
 	var mapboxAPIKey string
 	var mapboxUserName string
+	var mapboxCredentials MapboxCredentials
 
 	app := cli.NewApp()
 	app.Name = "mapuploader"
@@ -51,7 +52,10 @@ func main() {
 				if mapboxAPIKey == "" || mapboxUserName == "" {
 					return cli.NewExitError("you need to provide mapbox access tokens", 1)
 				}
-				getMapboxCredentials(mapboxAPIKey, mapboxUserName, mapboxHTTPClient)
+				mapboxCredentials, err := getMapboxCredentials(mapboxAPIKey, mapboxUserName, mapboxHTTPClient)
+				if err != nil {
+					return cli.NewExitError("could not retrieve mapbox credentials", 1)
+				}
 				return nil
 			},
 		},
@@ -77,7 +81,7 @@ type MapboxCredentials struct {
 	URL             string
 }
 
-func getMapboxCredentials(apiKey string, userName string, mapboxClient *http.Client) {
+func getMapboxCredentials(apiKey string, userName string, mapboxClient *http.Client) (*MapboxCredentials, error) {
 	baseURL, _ := url.Parse(MapboxURL)
 	uploadsURLSegment := fmt.Sprintf("/uploads/v1/%s/credentials", userName)
 	parameters := url.Values{}
@@ -92,7 +96,9 @@ func getMapboxCredentials(apiKey string, userName string, mapboxClient *http.Cli
 		credentials := new(MapboxCredentials)
 		if err := json.NewDecoder(response.Body).Decode(credentials); err == nil {
 			fmt.Println(credentials)
+			return credentials, nil
 		}
+		return nil, err
 	}
-
+	return nil, err
 }
