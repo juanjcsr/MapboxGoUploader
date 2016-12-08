@@ -53,11 +53,21 @@ func main() {
 		{
 			Name:    "upload",
 			Aliases: []string{"u"},
-			Usage:   "uploads the geojson or tile to mapbox",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Usage: "the name for the tileset",
+				},
+			},
+			Usage: "uploads the geojson or tile to mapbox",
 			Action: func(c *cli.Context) error {
 				filestring := c.Args().First()
 				if mapboxAPIKey == "" || mapboxUserName == "" {
 					return cli.NewExitError("you need to provide mapbox access tokens", 1)
+				}
+				nameVar := c.String("name")
+				if nameVar == "" {
+					return cli.NewExitError("you need to provide the name for the tileset", 1)
 				}
 				mapboxCredentials, err := getMapboxCredentials(mapboxAPIKey, mapboxUserName, mapboxHTTPClient)
 				if err != nil {
@@ -66,7 +76,7 @@ func main() {
 				fmt.Println(mapboxCredentials)
 				s3uploader := setAWSVariables(mapboxCredentials.AccessKeyID, mapboxCredentials.SecretAccessKey, mapboxCredentials.SessionToken)
 				uploadFile(filestring, s3uploader, mapboxCredentials.Bucket, mapboxCredentials.Key)
-				postToMapbox(mapboxCredentials.URL, "edomexagebs", mapboxAPIKey, mapboxUserName, mapboxHTTPClient)
+				postToMapbox(mapboxCredentials.URL, nameVar, mapboxAPIKey, mapboxUserName, mapboxHTTPClient)
 				return nil
 			},
 		},
@@ -170,8 +180,9 @@ func postToMapbox(awsURL string, tileTitle string, apiKey string, userName strin
 	awsEncodedURL, _ := url.Parse(awsURL)
 	jsonString := fmt.Sprintf(`{
         "url": "%s",
-        "tileset": "%s.%s"
-        }`, awsEncodedURL.String(), userName, tileTitle)
+        "tileset": "%s.%s",
+		"name": "%s"
+        }`, awsEncodedURL.String(), userName, tileTitle, tileTitle)
 
 	fmt.Println("THEJSON: ")
 	fmt.Println(jsonString)
