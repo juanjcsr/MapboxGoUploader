@@ -32,9 +32,9 @@ func main() {
 	// var mapboxCredentials MapboxCredentials
 
 	app := cli.NewApp()
-	app.Name = "mapuploader"
+	app.Name = "mapbox_uploader"
 	app.Usage = "uploads data to mapbox servers"
-
+	app.Version = "0.0.1"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "mapbox_key, mk",
@@ -48,7 +48,6 @@ func main() {
 			Destination: &mapboxUserName,
 		},
 	}
-
 	app.Commands = []cli.Command{
 		{
 			Name:    "upload",
@@ -83,7 +82,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		fmt.Println("hola :D")
+		fmt.Println("check 'help' or '-h' for correct usage")
 		return nil
 	}
 	app.Run(os.Args)
